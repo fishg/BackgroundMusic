@@ -47,6 +47,7 @@ static const char* const kBGMIssueTrackerURL = "https://github.com/kyleneideck/B
 #define kBGMDeviceUID                "BGMDevice"
 #define kBGMDeviceModelUID           "BGMDeviceModelUID"
 #define kBGMDeviceUID_UISounds       "BGMDevice_UISounds"
+#define kBGMDeviceUID_YOUME          "Aggregate"
 #define kBGMDeviceModelUID_UISounds  "BGMDeviceModelUID_UISounds"
 #define kBGMNullDeviceUID            "BGMNullDevice"
 #define kBGMNullDeviceModelUID       "BGMNullDeviceModelUID"
