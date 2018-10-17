@@ -165,6 +165,7 @@ productbuild \
     --identifier "$pkg_identifier" \
     --resources "pkgres" \
     --package-path "$out_dir" \
+    --sign "Developer ID Installer: me you"\
     "$pkg"
 
 rm -f "$out_dir/Installer.pkg"
