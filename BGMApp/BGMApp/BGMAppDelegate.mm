@@ -66,6 +66,7 @@ static NSString* const kOptShowDockIcon      = @"--show-dock-icon";
     BGMPreferencesMenu* prefsMenu;
     BGMXPCListener* xpcListener;
     dispatch_queue_t listenerQueue;
+    AudioObjectPropertyListenerBlock devicesChangeBlock;
     BOOL started;
     BOOL needRestart;
 }
