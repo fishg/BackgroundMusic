@@ -65,11 +65,27 @@ static NSString* const kOptShowDockIcon      = @"--show-dock-icon";
     BGMAppVolumesController* appVolumes;
     BGMPreferencesMenu* prefsMenu;
     BGMXPCListener* xpcListener;
+    dispatch_queue_t listenerQueue;
+    BOOL started;
+    BOOL needRestart;
 }
 
 @synthesize audioDevices = audioDevices;
 
 - (void) awakeFromNib {
+    started = NO;
+    needRestart = NO;
+    dispatch_queue_attr_t attr;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpartial-availability"
+    if (&dispatch_queue_attr_make_with_qos_class) {
+        attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_DEFAULT, 0);
+    } else {
+        // OS X 10.9 fallback
+        attr = DISPATCH_QUEUE_SERIAL;
+    }
+#pragma clang diagnostic pop
+    listenerQueue = dispatch_queue_create("com.bearisdriving.BGM.DeviceChange.Listener", attr);
     // Show BGMApp in the dock, if the command-line option for that was passed. This is used by the
     // UI tests.
     if ([NSProcessInfo.processInfo.arguments indexOfObject:kOptShowDockIcon] != NSNotFound) {
@@ -79,6 +95,58 @@ static NSString* const kOptShowDockIcon      = @"--show-dock-icon";
     haveShownXPCHelperErrorMessage = NO;
 
     [self initStatusBarItem];
+}
+
+- (void) restartOurselves
+{
+    needRestart = YES;
+    [NSApp terminate:self];
+}
+
+- (void) relaunch
+{
+    NSString *appName = [[[NSBundle mainBundle] infoDictionary] objectForKey:(id)kCFBundleNameKey];
+    [[NSWorkspace sharedWorkspace] launchApplication:appName];
+    exit(0);
+}
+
+-(void)dealDeviceChange
+{
+    DebugMsg("dealDeviceChange");
+    if(started){
+        DebugMsg("dealDeviceChange: delay to restart");
+        BGMAppDelegate* _self = self;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            // run on main thread
+            [_self performSelector:@selector(restartOurselves) withObject:nil afterDelay:1.0];
+        });
+    }
+}
+
+-(void)startCheckDevicesChange
+{
+    const AudioObjectPropertyAddress defaultAddr = {
+        kAudioHardwarePropertyDevices,
+        kAudioObjectPropertyScopeGlobal,
+        kAudioObjectPropertyElementMaster
+    };
+    
+    BGMAppDelegate* _self = self;
+    devicesChangeBlock = ^(UInt32 inNumberAddresses, const AudioObjectPropertyAddress *inAddresses){
+        AudioObjectPropertyAddress* pAddr = (AudioObjectPropertyAddress*)inAddresses;
+        for( int i = 0 ;i < inNumberAddresses; i++, pAddr++ )
+        {
+            if( pAddr->mSelector != kAudioHardwarePropertyDevices )
+            {
+                continue;
+            }
+            
+            [_self dealDeviceChange];
+        }
+    };
+    
+    AudioObjectAddPropertyListenerBlock(kAudioObjectSystemObject, &defaultAddr, listenerQueue,devicesChangeBlock );
+    
 }
 
 // Set up the status bar item. (The thing you click to show BGMApp's UI.)
@@ -144,6 +212,8 @@ static NSString* const kOptShowDockIcon      = @"--show-dock-icon";
     
     // Set the main menu
     statusBarItem.menu = self.bgmMenu;
+    
+    [self startCheckDevicesChange];
 }
 
 - (void) applicationDidFinishLaunching:(NSNotification*)aNotification {
@@ -203,8 +273,13 @@ static NSString* const kOptShowDockIcon      = @"--show-dock-icon";
     return YES;
 }
 
+-(void)setStartedStatus{
+    started = YES;
+}
+
 // Sets the "Background Music" virtual audio device (BGMDevice) as the user's default audio device.
 - (void) setBGMDeviceAsDefault {
+    started = NO;
     void (^setDefaultDevice)() = ^{
         NSError* error = [audioDevices setBGMDeviceAsOSDefault];
 
@@ -251,6 +326,7 @@ static NSString* const kOptShowDockIcon      = @"--show-dock-icon";
         // require user permission for input devices.
         setDefaultDevice();
     }
+    [self performSelector:@selector(setStartedStatus) withObject:nil afterDelay:1.0];
 }
 
 - (void) setUpMainMenu:(BGMUserDefaults*)userDefaults {
@@ -321,6 +397,9 @@ static NSString* const kOptShowDockIcon      = @"--show-dock-icon";
         [self showSetDeviceAsDefaultError:error
                                   message:@"Failed to reset your system's audio output device."
                           informativeText:@"You'll have to change it yourself to get audio working again."];
+    }
+    if(needRestart){
+        [self relaunch];
     }
 }
 
