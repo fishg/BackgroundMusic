@@ -68,14 +68,13 @@ static NSString* const kOptShowDockIcon      = @"--show-dock-icon";
     dispatch_queue_t listenerQueue;
     AudioObjectPropertyListenerBlock devicesChangeBlock;
     BOOL started;
-    BOOL needRestart;
 }
 
 @synthesize audioDevices = audioDevices;
 
 - (void) awakeFromNib {
     started = NO;
-    needRestart = NO;
+    
     dispatch_queue_attr_t attr;
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wpartial-availability"
@@ -98,17 +97,9 @@ static NSString* const kOptShowDockIcon      = @"--show-dock-icon";
     [self initStatusBarItem];
 }
 
-- (void) restartOurselves
+- (void) noticeDeviceChanged
 {
-    needRestart = YES;
-    [NSApp terminate:self];
-}
-
-- (void) relaunch
-{
-    NSString *appName = [[[NSBundle mainBundle] infoDictionary] objectForKey:(id)kCFBundleNameKey];
-    [[NSWorkspace sharedWorkspace] launchApplication:appName];
-    exit(0);
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"BGMDeviceChange" object:nil];
 }
 
 -(void)dealDeviceChange
@@ -119,7 +110,7 @@ static NSString* const kOptShowDockIcon      = @"--show-dock-icon";
         BGMAppDelegate* _self = self;
         dispatch_async(dispatch_get_main_queue(), ^{
             // run on main thread
-            [_self performSelector:@selector(restartOurselves) withObject:nil afterDelay:1.0];
+            [_self performSelector:@selector(noticeDeviceChanged) withObject:nil afterDelay:1.0];
         });
     }
 }
@@ -398,9 +389,6 @@ static NSString* const kOptShowDockIcon      = @"--show-dock-icon";
         [self showSetDeviceAsDefaultError:error
                                   message:@"Failed to reset your system's audio output device."
                           informativeText:@"You'll have to change it yourself to get audio working again."];
-    }
-    if(needRestart){
-        [self relaunch];
     }
 }
 

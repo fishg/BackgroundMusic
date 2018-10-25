@@ -42,6 +42,7 @@ static NSInteger const kAboutPanelMenuItemTag = 3;
     
     // The About Background Music window
     BGMAboutPanel* aboutPanel;
+    NSMenu* prefsMenu;
 }
 
 - (id) initWithBGMMenu:(NSMenu*)inBGMMenu
@@ -50,7 +51,7 @@ static NSInteger const kAboutPanelMenuItemTag = 3;
             aboutPanel:(NSPanel*)inAboutPanel
  aboutPanelLicenseView:(NSTextView*)inAboutPanelLicenseView {
     if ((self = [super init])) {
-        NSMenu* prefsMenu = [[inBGMMenu itemWithTag:kPreferencesMenuItemTag] submenu];
+        prefsMenu = [[inBGMMenu itemWithTag:kPreferencesMenuItemTag] submenu];
         [prefsMenu setDelegate:self];
         
         autoPauseMusicPrefs = [[BGMAutoPauseMusicPrefs alloc] initWithPreferencesMenu:prefsMenu
@@ -65,9 +66,16 @@ static NSInteger const kAboutPanelMenuItemTag = 3;
         NSMenuItem* aboutMenuItem = [prefsMenu itemWithTag:kAboutPanelMenuItemTag];
         [aboutMenuItem setTarget:aboutPanel];
         [aboutMenuItem setAction:@selector(show)];
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(deivceChangeNotify) name:@"BGMDeviceChange" object:nil];
     }
     
     return self;
+}
+
+- (void) deivceChangeNotify
+{
+    if(prefsMenu)
+        [outputDevicePrefs populatePreferencesMenu:prefsMenu];
 }
 
 #pragma mark NSMenuDelegate

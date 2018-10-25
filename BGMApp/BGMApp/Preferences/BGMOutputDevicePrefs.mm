@@ -67,14 +67,34 @@ static NSInteger const kOutputDeviceMenuItemTag = 2;
     if (numDevices > 0) {
         CAAutoArrayDelete<AudioObjectID> devices(numDevices);
         audioSystem.GetAudioDevices(numDevices, devices);
-        
+        BOOL isSelected = NO;
         for (UInt32 i = 0; i < numDevices; i++) {
-            [self insertMenuItemsForDevice:devices[i] preferencesMenu:prefsMenu];
+                isSelected |= [self insertMenuItemsForDevice:devices[i] preferencesMenu:prefsMenu];
+        }
+        if([prefsMenu itemArray] && [prefsMenu itemArray].count >0){
+            NSMenuItem* lastItem = nil;
+            for (NSMenuItem *it in [prefsMenu itemArray]) {
+                if(it && it.action){
+                    NSString *actionName = [NSString stringWithUTF8String:sel_getName((SEL _Nonnull)it.action)];
+                    if(actionName){
+                        if([@"outputDeviceWasChanged:" isEqualToString:actionName]){
+                            lastItem = it;
+                        }
+                    }
+                    
+                }
+            }
+            if(lastItem && !isSelected){
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    // run on main thread
+                    [self performSelector:@selector(outputDeviceWasChanged:) withObject:lastItem afterDelay:1.0];
+                });
+            }
         }
     }
 }
 
-- (void) insertMenuItemsForDevice:(BGMAudioDevice)device preferencesMenu:(NSMenu*)prefsMenu {
+- (BOOL) insertMenuItemsForDevice:(BGMAudioDevice)device preferencesMenu:(NSMenu*)prefsMenu {
     // Insert menu items after the item for the "Output Device" heading.
     const NSInteger menuItemsIdx = [prefsMenu indexOfItemWithTag:kOutputDeviceMenuItemTag] + 1;
 
@@ -82,13 +102,20 @@ static NSInteger const kOutputDeviceMenuItemTag = 2;
     BGMLogAndSwallowExceptions("BGMOutputDevicePrefs::insertMenuItemsForDevice", ([&] {
         canBeOutputDevice = device.CanBeOutputDeviceInBGMApp();
     }));
-
+    
+    BOOL isSelected = NO;
+    
     if (canBeOutputDevice) {
         for (NSMenuItem* item : [self createMenuItemsForDevice:device]) {
             [prefsMenu insertItem:item atIndex:menuItemsIdx];
             [outputDeviceMenuItems addObject:item];
+            if(item.state == NSOnState){
+                isSelected = YES;
+            }
         }
     }
+    
+    return isSelected;
 }
 
 - (NSArray<NSMenuItem*>*) createMenuItemsForDevice:(CAHALAudioDevice)device {
