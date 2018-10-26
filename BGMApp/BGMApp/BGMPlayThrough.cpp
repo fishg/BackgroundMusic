@@ -39,11 +39,13 @@
 #include <mach/mach_init.h>
 #include <mach/mach_time.h>
 #include <mach/task.h>
+#include <mutex>
 
 
 // The number of IO cycles (roughly) to wait for our IOProcs to stop themselves before assuming something
 // went wrong. If that happens, we try to stop them from a non-IO thread and continue anyway. 
 static const UInt32 kStopIOProcTimeoutInIOCycles = 600;
+int needSleep = 0;
 
 #pragma mark Construction/Destruction
 
@@ -873,6 +875,9 @@ void    BGMPlayThrough::HandleBGMDeviceIsRunning(BGMPlayThrough* refCon)
 #if DEBUG
                 refCon->mToldOutputDeviceToStartAt = mach_absolute_time();
 #endif
+                if(refCon->mPlayingThrough){
+                    needSleep = 1;
+                }
                 // TODO: Handle expected exceptions (mostly CAExceptions from PublicUtility classes) in Start.
                 //       For any that can't be handled sensibly in Start, catch them here and retry a few
                 //       times (with a very short delay) before handling them by showing an unobtrusive error
@@ -926,7 +931,10 @@ OSStatus    BGMPlayThrough::InputDeviceIOProc(AudioObjectID           inDevice,
                                               void* __nullable        inClientData)
 {
     #pragma unused (inDevice, inNow, outOutputData, inOutputTime)
-    
+    if(needSleep != 0){
+        usleep(1000 * 1000);
+        needSleep = 0;
+    }
     // refCon (reference context) is the instance that created the IOProc
     BGMPlayThrough* const refCon = static_cast<BGMPlayThrough*>(inClientData);
     
@@ -975,7 +983,10 @@ OSStatus    BGMPlayThrough::OutputDeviceIOProc(AudioObjectID           inDevice,
                                                void* __nullable        inClientData)
 {
     #pragma unused (inDevice, inNow, inInputData, inInputTime, inOutputTime)
-    
+    if(needSleep != 0){
+        usleep(1000 * 1000);
+        needSleep = 0;
+    }
     // refCon (reference context) is the instance that created the IOProc
     BGMPlayThrough* const refCon = static_cast<BGMPlayThrough*>(inClientData);
     
@@ -1063,14 +1074,14 @@ OSStatus    BGMPlayThrough::OutputDeviceIOProc(AudioObjectID           inDevice,
         refCon->mInToOutSampleOffset = inOutputTime->mSampleTime - lastInputSampleTime;
         readHeadSampleTime = static_cast<CARingBuffer::SampleTime>(inOutputTime->mSampleTime - refCon->mInToOutSampleOffset);
     }
-
+    
     // Copy the frames from the ring buffer
     err = refCon->mBuffer.Fetch(outOutputData, framesToOutput, readHeadSampleTime);
+//    DebugMsg("framesToOutput:%u",framesToOutput);
     
     HandleRingBufferError(err, "OutputDeviceIOProc", "mBuffer.Fetch");
-    
+    //DebugMsg("BGMPlayThrough");
     refCon->mLastOutputSampleTime = inOutputTime->mSampleTime;
-    
     return noErr;
 }
 

@@ -111,6 +111,7 @@ bool    BGM_Clients::StartIONonRT(UInt32 inClientID)
         // Make sure we can start
         ThrowIf(mStartCount == UINT64_MAX, CAException(kAudioHardwareIllegalOperationError), "BGM_Clients::StartIO: failed to start because the ref count was maxxed out already");
         
+        const char* bunldID = CFStringGetCStringPtr(theClient.mBundleID.GetCFString(), kCFStringEncodingUTF8);
         DebugMsg("BGM_Clients::StartIO: Client %u (%s, %d) starting IO",
                  inClientID,
                  CFStringGetCStringPtr(theClient.mBundleID.GetCFString(), kCFStringEncodingUTF8),
@@ -135,14 +136,16 @@ bool    BGM_Clients::StartIONonRT(UInt32 inClientID)
         
         // Return true if no other clients were running IO before this one started, which means the device should start IO
         didStartIO = (mStartCount == 1);
-        sendIsRunningNotification = didStartIO;
+        sendIsRunningNotification = didStartIO ? didStartIO : (theClient.mProcessID >350 && !theClient.mIsMusicPlayer && mStartCount>1);
+        DebugMsg("BGM_Clients::StartIO: sendIsRunningNotification %d didStartIO %d",
+                 sendIsRunningNotification,didStartIO);
     }
     
     Assert(mStartCountExcludingBGMApp == mStartCount - 1 || mStartCountExcludingBGMApp == mStartCount,
            "mStartCount and mStartCountExcludingBGMApp are out of sync");
     
     SendIORunningNotifications(sendIsRunningNotification, sendIsRunningSomewhereOtherThanBGMAppNotification);
-
+    
     return didStartIO;
 }
 
