@@ -111,7 +111,6 @@ bool    BGM_Clients::StartIONonRT(UInt32 inClientID)
         // Make sure we can start
         ThrowIf(mStartCount == UINT64_MAX, CAException(kAudioHardwareIllegalOperationError), "BGM_Clients::StartIO: failed to start because the ref count was maxxed out already");
         
-        const char* bunldID = CFStringGetCStringPtr(theClient.mBundleID.GetCFString(), kCFStringEncodingUTF8);
         DebugMsg("BGM_Clients::StartIO: Client %u (%s, %d) starting IO",
                  inClientID,
                  CFStringGetCStringPtr(theClient.mBundleID.GetCFString(), kCFStringEncodingUTF8),
