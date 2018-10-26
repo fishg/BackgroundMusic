@@ -32,6 +32,7 @@
 #import "BGMSystemSoundsVolume.h"
 #import "BGMAppVolumesController.h"
 #import "BGMPreferencesMenu.h"
+#import "BGMPreferredOutputDevices.h"
 #import "BGMXPCListener.h"
 #import "BGMOutputVolumeMenuItem.h"
 #import "BGMTermination.h"
@@ -65,6 +66,7 @@ static NSString* const kOptShowDockIcon      = @"--show-dock-icon";
     BGMAppVolumesController* appVolumes;
     BGMPreferencesMenu* prefsMenu;
     BGMXPCListener* xpcListener;
+    BGMPreferredOutputDevices* preferredOutputDevices;
 }
 
 @synthesize audioDevices = audioDevices;
@@ -163,6 +165,10 @@ static NSString* const kOptShowDockIcon      = @"--show-dock-icon";
     if (![self initAudioDeviceManager]) {
         return;
     }
+
+    // Handles changing (or not changing) the output device when devices are added or removed. Must
+    // be initialised before calling setBGMDeviceAsDefault.
+    preferredOutputDevices = [[BGMPreferredOutputDevices alloc] initWithDevices:audioDevices];
 
     // Make BGMDevice the default device.
     [self setBGMDeviceAsDefault];
@@ -264,6 +270,7 @@ static NSString* const kOptShowDockIcon      = @"--show-dock-icon";
 
     prefsMenu = [[BGMPreferencesMenu alloc] initWithBGMMenu:self.bgmMenu
                                                audioDevices:audioDevices
+                                           preferredDevices:preferredOutputDevices
                                                musicPlayers:musicPlayers
                                                  aboutPanel:self.aboutPanel
                                       aboutPanelLicenseView:self.aboutPanelLicenseView];
