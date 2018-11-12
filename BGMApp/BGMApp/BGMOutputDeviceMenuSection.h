@@ -14,7 +14,7 @@
 // along with Background Music. If not, see <http://www.gnu.org/licenses/>.
 
 //
-//  BGMOutputDevicePrefs.h
+//  BGMOutputDeviceMenuSection.h
 //  BGMApp
 //
 //  Copyright © 2016, 2018 Kyle Neideck
@@ -30,11 +30,15 @@
 
 #pragma clang assume_nonnull begin
 
-@interface BGMOutputDevicePrefs : NSObject
+@interface BGMOutputDeviceMenuSection : NSObject
 
-- (id) initWithAudioDevices:(BGMAudioDeviceManager*)inAudioDevices
-           preferredDevices:(BGMPreferredOutputDevices*)inPreferredDevices;
-- (void) populatePreferencesMenu:(NSMenu*)prefsMenu;
+- (instancetype) initWithBGMMenu:(NSMenu*)inBGMMenu
+                    audioDevices:(BGMAudioDeviceManager*)inAudioDevices
+                preferredDevices:(BGMPreferredOutputDevices*)inPreferredDevices;
+
+// To be called when BGMApp has been set to use a different output device. For example, when a new
+// device is connected and BGMPreferredOutputDevices decides BGMApp should switch to it.
+- (void) outputDeviceDidChange;
 
 @end
 

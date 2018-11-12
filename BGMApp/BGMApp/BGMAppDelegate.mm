@@ -25,17 +25,18 @@
 
 // Local Includes
 #import "BGM_Utils.h"
-#import "BGMUserDefaults.h"
-#import "BGMMusicPlayers.h"
+#import "BGMAppVolumesController.h"
 #import "BGMAutoPauseMusic.h"
 #import "BGMAutoPauseMenuItem.h"
-#import "BGMSystemSoundsVolume.h"
-#import "BGMAppVolumesController.h"
+#import "BGMMusicPlayers.h"
+#import "BGMOutputDeviceMenuSection.h"
+#import "BGMOutputVolumeMenuItem.h"
 #import "BGMPreferencesMenu.h"
 #import "BGMPreferredOutputDevices.h"
-#import "BGMXPCListener.h"
-#import "BGMOutputVolumeMenuItem.h"
+#import "BGMSystemSoundsVolume.h"
 #import "BGMTermination.h"
+#import "BGMUserDefaults.h"
+#import "BGMXPCListener.h"
 #import "SystemPreferences.h"
 
 // System Includes
@@ -61,6 +62,7 @@ static NSString* const kOptShowDockIcon      = @"--show-dock-icon";
     BGMMusicPlayers* musicPlayers;
     BGMSystemSoundsVolume* systemSoundsVolume;
     BGMAppVolumesController* appVolumes;
+    BGMOutputDeviceMenuSection* outputDeviceMenuSection;
     BGMPreferencesMenu* prefsMenu;
     BGMXPCListener* xpcListener;
     BGMPreferredOutputDevices* preferredOutputDevices;
@@ -292,9 +294,16 @@ static NSString* const kOptShowDockIcon      = @"--show-dock-icon";
 
     [self initVolumesMenuSection];
 
+    // Output device selection.
+    outputDeviceMenuSection =
+            [[BGMOutputDeviceMenuSection alloc] initWithBGMMenu:self.bgmMenu
+                                                   audioDevices:audioDevices
+                                               preferredDevices:preferredOutputDevices];
+    [audioDevices setOutputDeviceMenuSection:outputDeviceMenuSection];
+
+    // Preferences submenu.
     prefsMenu = [[BGMPreferencesMenu alloc] initWithBGMMenu:self.bgmMenu
                                                audioDevices:audioDevices
-                                           preferredDevices:preferredOutputDevices
                                                musicPlayers:musicPlayers
                                                  aboutPanel:self.aboutPanel
                                       aboutPanelLicenseView:self.aboutPanelLicenseView];
