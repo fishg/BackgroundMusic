@@ -346,7 +346,7 @@ void    BGM_Stream::GetPropertyData(AudioObjectID inObjectID,
                 outASRD[0].mFormat.mBitsPerChannel = 32;
                 // These match kAudioDevicePropertyAvailableNominalSampleRates.
                 outASRD[0].mSampleRateRange.mMinimum = 1.0;
-                outASRD[0].mSampleRateRange.mMaximum = 192000.0;
+                outASRD[0].mSampleRateRange.mMaximum = 1000000000.0;
 
                 // Report how much we wrote.
                 outDataSize = sizeof(AudioStreamRangedDescription);
